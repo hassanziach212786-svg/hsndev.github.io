@@ -811,3 +811,612 @@ if (matchMedia('(max-width: 900px)').matches) {
 </script>
 </body>
 </html>
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/////
+
+
+
+                                             
+                                         
+                                             Lab 8
+          Name:                                             Hassan Zia
+          Roll No:                                           243541
+          Semester:                                       3rd 
+          Department:                                  BS CS (B)
+          Subject:                                           Vp
+
+
+
+
+
+
+
+Model:
+const mongoose=require('mongoose');
+const studentschema=new mongoose.Schema({
+name:{
+    type:String,
+    required:true
+},
+age:{
+    type:Number,
+    required:true
+},
+message:{
+    type:String,
+    required:true
+},},{timestamps:true}
+)
+
+module.exports=mongoose.model('student',studentschema)
+
+
+
+
+
+
+
+
+Server.js:
+const express = require("express");
+const mongoose = require("mongoose");
+const cors = require("cors");
+const dotenv = require("dotenv");
+const Feedback = require("./models/Feedback");
+
+dotenv.config();
+
+const app = express();
+
+app.use(cors());
+app.use(express.json());
+
+// MongoDB connection
+mongoose
+  .connect(process.env.MONGO_URI)
+  .then(() => console.log("MongoDB Connected"))
+  .catch((error) => console.log("MongoDB Error:", error));
+
+// Test route
+app.get("/", (req, res) => {
+  res.send("Server is running");
+});
+
+// CREATE feedback
+app.post("/api/feedback", async (req, res) => {
+  try {
+    const feedback = await Feedback.create(req.body);
+    res.status(201).json(feedback);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to add feedback",
+    });
+  }
+});
+
+// READ all feedbacks
+app.get("/api/feedback", async (req, res) => {
+  try {
+    const feedbacks = await Feedback.find().sort({ createdAt: -1 });
+    res.status(200).json(feedbacks);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to fetch feedback",
+    });
+  }
+});
+
+// READ single feedback
+app.get("/api/feedback/:id", async (req, res) => {
+  try {
+    const feedback = await Feedback.findById(req.params.id);
+    res.status(200).json(feedback);
+  } catch (error) {
+    res.status(500).json({
+      message: "Feedback not found",
+    });
+  }
+});
+
+// UPDATE feedback
+app.put("/api/feedback/:id", async (req, res) => {
+  try {
+    const updatedFeedback = await Feedback.findByIdAndUpdate(
+      req.params.id,
+      req.body,
+      { new: true }
+    );
+
+    res.status(200).json(updatedFeedback);
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to update feedback",
+    });
+  }
+});
+
+// DELETE feedback
+app.delete("/api/feedback/:id", async (req, res) => {
+  try {
+    await Feedback.findByIdAndDelete(req.params.id);
+
+    res.status(200).json({
+      message: "Feedback deleted successfully",
+    });
+  } catch (error) {
+    res.status(500).json({
+      message: "Failed to delete feedback",
+    });
+  }
+});
+
+// Start server
+const PORT = process.env.PORT || 5000;
+
+app.listen(PORT, () => {
+  console.log(`Server running on port ${PORT}`);
+});
+
+
+
+App.jsx:
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Link,
+} from "react-router-dom";
+
+import FeedbackForm from "./pages/FeedbackForm";
+import FeedbackList from "./pages/FeedbackList";
+import UpdateFeedback from "./pages/UpdateFeedback";
+
+import "./App.css";
+
+function App() {
+  return (
+    <BrowserRouter>
+
+      <nav className="navbar">
+        <Link to="/">Add Feedback</Link>
+
+        <Link to="/feedbacks">
+          Feedback List
+        </Link>
+      </nav>
+
+      <Routes>
+
+        <Route
+          path="/"
+          element={<FeedbackForm />}
+        />
+
+        <Route
+          path="/feedbacks"
+          element={<FeedbackList />}
+        />
+
+        <Route
+          path="/update/:id"
+          element={<UpdateFeedback />}
+        />
+
+      </Routes>
+
+    </BrowserRouter>
+  );
+}
+
+export default App;
+
+
+
+import { useState } from "react";
+import axios from "axios";
+import { useNavigate } from "react-router-dom";
+
+function FeedbackForm() {
+
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+
+  const API_URL =
+    "http://localhost:5000/api/feedback";
+
+  const handleSubmit = async (e) => {
+
+    e.preventDefault();
+
+    if (!name || !email || !message) {
+
+      setError("Please fill all fields");
+
+      return;
+    }
+
+    try {
+
+      await axios.post(API_URL, {
+        name,
+        email,
+        message,
+      });
+
+      setName("");
+      setEmail("");
+      setMessage("");
+      setError("");
+
+      navigate("/feedbacks");
+
+    } catch (error) {
+
+      setError("Failed to add feedback");
+
+    }
+  };
+
+  return (
+    <div className="container">
+
+      <h1>Add Feedback</h1>
+
+      <form
+        onSubmit={handleSubmit}
+        className="form"
+      >
+
+        <input
+          type="text"
+          placeholder="Enter your name"
+          value={name}
+          onChange={(e) =>
+            setName(e.target.value)
+          }
+        />
+
+        <input
+          type="email"
+          placeholder="Enter your email"
+          value={email}
+          onChange={(e) =>
+            setEmail(e.target.value)
+          }
+        />
+
+        <textarea
+          placeholder="Enter feedback"
+          value={message}
+          onChange={(e) =>
+            setMessage(e.target.value)
+          }
+        ></textarea>
+
+        <button type="submit">
+          Submit Feedback
+        </button>
+
+      </form>
+
+      {error && (
+        <p className="error">
+          {error}
+        </p>
+      )}
+
+    </div>
+  );
+}
+
+export default FeedbackForm;
+
+
+
+
+
+import { useEffect, useState } from "react";
+import axios from "axios";
+
+function FeedbackList() {
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [error, setError] = useState("");
+
+  const API_URL = "http://localhost:5000/api/feedback";
+
+  const getFeedbacks = async () => {
+    try {
+      const response = await axios.get(API_URL);
+      setFeedbacks(response.data);
+    } catch (error) {
+      setError("Failed to load feedbacks");
+    }
+  };
+
+  useEffect(() => {
+    getFeedbacks();
+  }, []);
+
+  return (
+    <div className="container">
+      <h1>All Feedbacks</h1>
+
+      {error && <p className="error">{error}</p>}
+
+      {feedbacks.length === 0 ? (
+        <p className="empty">No feedback yet.</p>
+      ) : (
+        feedbacks.map((item) => (
+          <div className="feedback-card" key={item._id}>
+            <h3>{item.name}</h3>
+            <p>{item.email}</p>
+            <p>{item.message}</p>
+          </div>
+        ))
+      )}
+    </div>
+  );
+}
+
+export default FeedbackList;
+
+
+
+
+
+
+
+import { useEffect, useState } from "react";
+import axios from "axios";
+import { useNavigate, useParams } from "react-router-dom";
+
+function UpdateFeedback() {
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+
+  const navigate = useNavigate();
+  const { id } = useParams();
+
+  const API_URL = "http://localhost:5000/api/feedback";
+
+  useEffect(() => {
+    const getSingleFeedback = async () => {
+      try {
+        const response = await axios.get(`${API_URL}/${id}`);
+
+        setName(response.data.name);
+        setEmail(response.data.email);
+        setMessage(response.data.message);
+      } catch (error) {
+        setError("Failed to load feedback");
+      }
+    };
+
+    getSingleFeedback();
+  }, [id]);
+
+  const handleUpdate = async (e) => {
+    e.preventDefault();
+
+    if (!name || !email || !message) {
+      setError("Please fill all fields");
+      return;
+    }
+
+    try {
+      await axios.put(`${API_URL}/${id}`, {
+        name,
+        email,
+        message,
+      });
+
+      navigate("/feedbacks");
+    } catch (error) {
+      setError("Failed to update feedback");
+    }
+  };
+
+  return (
+    <div className="container">
+      <h1>Update Feedback</h1>
+
+      <form onSubmit={handleUpdate} className="form">
+        <input
+          type="text"
+          placeholder="Enter name"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+        />
+
+        <input
+          type="email"
+          placeholder="Enter email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+        />
+
+        <textarea
+          placeholder="Enter feedback"
+          value={message}
+          onChange={(e) => setMessage(e.target.value)}
+        ></textarea>
+
+        <button type="submit">Update Feedback</button>
+      </form>
+
+      {error && <p className="error">{error}</p>}
+    </div>
+  );
+}
+
+export default UpdateFeedback;
+
+
+
+
+
+
+App.css
+body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: #f3f4f6;
+}
+
+.navbar {
+  background: #2563eb;
+  padding: 15px;
+  text-align: center;
+}
+
+.navbar a {
+  color: white;
+  text-decoration: none;
+  margin: 0 15px;
+  font-weight: bold;
+}
+
+.container {
+  width: 90%;
+  max-width: 600px;
+  margin: 40px auto;
+  background: white;
+  padding: 25px;
+  border-radius: 10px;
+}
+
+h1,
+h2 {
+  text-align: center;
+  color: #111827;
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+input,
+textarea {
+  padding: 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+}
+
+textarea {
+  height: 100px;
+}
+
+button {
+  padding: 12px;
+  background: #2563eb;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+.error {
+  color: red;
+  text-align: center;
+}
+
+.feedback-card {
+  background: #f9fafb;
+  padding: 15px;
+  margin-top: 15px;
+  border-left: 4px solid #2563eb;
+  border-radius: 6px;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
